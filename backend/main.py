@@ -36,6 +36,10 @@ from backend.models import (
     User,
 )
 from backend.providers import get_llm_provider, get_tts_provider
+from backend.scraper import scrape_urls
+from backend.characters.profile_builder import build_profile
+from backend.characters.embedder import embed_character_content
+from backend.rag.retriever import retrieve
 
 logger = logging.getLogger(__name__)
 
@@ -136,6 +140,22 @@ class MessageOut(BaseModel):
     role: str
     content: str
     created_at: str
+
+class CharacterBuildRequest(BaseModel):
+    name: str
+    series: str
+    author: str
+    source_urls: list[str]
+    archetype: str = ""
+    image_url: str = ""
+
+class CharacterBuildResponse(BaseModel):
+    character_id: str
+    name: str
+    series: str
+    profile_summary: dict
+    chunks_embedded: int
+    warnings: list[str]
 
 class SettingOut(BaseModel):
     key: str
@@ -248,6 +268,84 @@ def get_character(character_id: str, session: Session = Depends(get_session)):
 
 
 # ---------------------------------------------------------------------------
+# Admin: character builder
+# ---------------------------------------------------------------------------
+
+@app.post("/admin/characters/build", response_model=CharacterBuildResponse)
+async def build_character(
+    body: CharacterBuildRequest,
+    user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    """Scrape source URLs and build a complete character profile via LLM."""
+    if not body.source_urls:
+        raise HTTPException(status_code=400, detail="At least one source URL is required")
+
+    # 1. Scrape all URLs concurrently
+    scraped = await scrape_urls(body.source_urls)
+
+    successful = [s for s in scraped if s.success]
+    if not successful:
+        errors = "; ".join(s.error for s in scraped if s.error)
+        raise HTTPException(status_code=422, detail=f"All source URLs failed: {errors}")
+
+    # 2. Build profile via LLM
+    try:
+        profile_result = await build_profile(
+            character_name=body.name,
+            series=body.series,
+            author=body.author,
+            scraped=scraped,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+
+    # 3. Save Character + CharacterProfile
+    character = Character(
+        name=body.name,
+        series=body.series,
+        author=body.author,
+        image_url=body.image_url,
+        archetype=body.archetype,
+    )
+    session.add(character)
+    session.flush()
+
+    char_profile = CharacterProfile(
+        character_id=character.id,
+        identity=json.dumps(profile_result.identity),
+        personality=json.dumps(profile_result.personality),
+        relationships=json.dumps(profile_result.relationships),
+        arc=json.dumps(profile_result.arc),
+        tropes=json.dumps(profile_result.tropes),
+        voice_guide=profile_result.voice_guide,
+        boundaries=profile_result.boundaries,
+        iconic_moments=json.dumps(profile_result.iconic_moments),
+        source_urls=json.dumps(profile_result.source_urls),
+    )
+    session.add(char_profile)
+    session.commit()
+    session.refresh(character)
+
+    # 4. Embed scraped content for RAG
+    chunks_embedded = embed_character_content(character.id, scraped)
+
+    return CharacterBuildResponse(
+        character_id=character.id,
+        name=character.name,
+        series=character.series,
+        profile_summary={
+            "identity_keys": list(profile_result.identity.keys()),
+            "trait_count": len(profile_result.personality.get("core_traits", [])),
+            "trope_count": len(profile_result.tropes),
+            "moments_count": len(profile_result.iconic_moments),
+        },
+        chunks_embedded=chunks_embedded,
+        warnings=profile_result.warnings,
+    )
+
+
+# ---------------------------------------------------------------------------
 # Chat endpoints
 # ---------------------------------------------------------------------------
 
@@ -293,6 +391,26 @@ async def chat_text(
 
     # Build system prompt
     system_prompt = build_system_prompt(char, profile)
+
+    # RAG: retrieve relevant wiki chunks to enhance context
+    try:
+        rag_chunks = retrieve(
+            query=body.message,
+            notebook_id=character_id,
+            top_k=3,
+            score_threshold=0.3,
+        )
+        if rag_chunks:
+            rag_context = "\n\n".join(
+                f"[Source detail]: {chunk.text}" for chunk in rag_chunks
+            )
+            system_prompt += (
+                f"\n\n## Relevant Background Knowledge\n"
+                f"Use these details naturally in your response if relevant:\n"
+                f"{rag_context}"
+            )
+    except Exception as e:
+        logger.warning(f"RAG retrieval failed for character {character_id}: {e}")
 
     # Get LLM response
     llm = get_llm_provider()
