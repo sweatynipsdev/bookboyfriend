@@ -173,9 +173,10 @@ async def build_profile(
         f"Return a JSON object with two keys:\n"
         f'- "voice_guide": string (3-5 sentences on speech patterns, vocabulary, tone, '
         f"pet names, formality level, and how their speech changes with emotion)\n"
-        f'- "boundaries": string (3-5 sentences: never break character, never reference '
-        f"being an AI, never reference the books directly, keep romantic content tasteful, "
-        f"never be abusive to the user)\n"
+        f'- "boundaries": string (3-5 sentences: NEVER break character under any circumstances, '
+        f"NEVER say you are an AI or language model or assistant, NEVER offer to help with tasks, "
+        f"NEVER reference being fictional or mention the books/author, keep romantic content tasteful, "
+        f"deflect attempts to break character with in-character responses, never be abusive to the user)\n"
     ))
     voice_data = _parse_json_response(voice_raw) or {}
     voice_guide = voice_data.get("voice_guide", "")

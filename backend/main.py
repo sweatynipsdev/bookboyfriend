@@ -9,6 +9,7 @@ from contextlib import asynccontextmanager
 from fastapi import Depends, FastAPI, HTTPException, WebSocket, WebSocketDisconnect, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from sqlmodel import Session, select
 
@@ -440,11 +441,14 @@ async def chat_voice(
         raise HTTPException(status_code=503, detail="TTS not configured")
 
     audio = await tts.generate(chat_result.reply)
+    # HTTP headers can't contain newlines — URL-encode the reply text
+    from urllib.parse import quote
+    safe_reply = quote(chat_result.reply, safe="")
     return Response(
         content=audio,
         media_type="audio/mpeg",
         headers={
-            "X-Text-Reply": chat_result.reply,
+            "X-Text-Reply": safe_reply,
             "X-Conversation-Id": chat_result.conversation_id,
         },
     )
@@ -610,3 +614,10 @@ def update_setting(
     session.commit()
     session.refresh(setting)
     return setting
+
+
+# ---------------------------------------------------------------------------
+# Static frontend (must be LAST — catches all unmatched routes)
+# ---------------------------------------------------------------------------
+
+app.mount("/", StaticFiles(directory="frontend", html=True), name="frontend")

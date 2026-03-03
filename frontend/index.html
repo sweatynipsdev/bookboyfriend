@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#0d0d0d">
+  <title>Book Boyfriend</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+  <!-- ============ Auth Screen ============ -->
+  <section id="auth-screen" class="screen">
+    <div class="auth-container">
+      <h1 class="logo">Book Boyfriend</h1>
+      <p class="tagline">Fall in love with fiction</p>
+
+      <form id="auth-form" autocomplete="off">
+        <input type="email" id="auth-email" placeholder="Email" required autocomplete="email">
+        <input type="password" id="auth-password" placeholder="Password" required autocomplete="current-password">
+        <button type="submit" id="auth-submit" class="btn-primary">Sign In</button>
+      </form>
+
+      <p class="auth-toggle">
+        <span id="auth-toggle-text">Don't have an account?</span>
+        <a href="#" id="auth-toggle-link">Create one</a>
+      </p>
+
+      <p id="auth-error" class="error-text" hidden></p>
+    </div>
+  </section>
+
+  <!-- ============ Character Select Screen ============ -->
+  <section id="characters-screen" class="screen" hidden>
+    <header class="screen-header">
+      <h2>Choose Your Character</h2>
+      <button id="logout-btn" class="btn-icon" title="Log out">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/>
+          <polyline points="16 17 21 12 16 7"/>
+          <line x1="21" y1="12" x2="9" y2="12"/>
+        </svg>
+      </button>
+    </header>
+
+    <div id="characters-grid" class="characters-grid">
+      <!-- Populated by JS -->
+    </div>
+  </section>
+
+  <!-- ============ Chat Screen ============ -->
+  <section id="chat-screen" class="screen" hidden>
+    <header class="chat-header">
+      <button id="chat-back" class="btn-icon" title="Back">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
+      </button>
+      <div class="chat-header-info">
+        <h3 id="chat-char-name"></h3>
+        <span id="chat-char-series" class="subtitle"></span>
+      </div>
+      <button id="voice-toggle" class="btn-icon" title="Toggle voice">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+          <path d="M19.07 4.93a10 10 0 010 14.14"/>
+          <path d="M15.54 8.46a5 5 0 010 7.07"/>
+        </svg>
+      </button>
+    </header>
+
+    <div id="chat-messages" class="chat-messages">
+      <!-- Populated by JS -->
+    </div>
+
+    <form id="chat-form" class="chat-input-bar">
+      <input type="text" id="chat-input" placeholder="Say something..." autocomplete="off">
+      <button type="submit" id="chat-send" class="btn-send" title="Send">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="22" y1="2" x2="11" y2="13"/>
+          <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+        </svg>
+      </button>
+    </form>
+
+    <audio id="tts-audio" hidden></audio>
+  </section>
+
+  <script src="/app.js"></script>
+</body>
+</html>
