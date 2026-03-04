@@ -24,7 +24,7 @@ class MiniMaxLLMProvider:
             base_url="https://api.minimax.io/v1",
         )
         self._model = settings.minimax_model
-        self._max_tokens = 1024
+        self._max_tokens = 256
 
     async def chat(self, messages: list[dict], system: str = "") -> str:
         """Send messages to MiniMax and return the response text.

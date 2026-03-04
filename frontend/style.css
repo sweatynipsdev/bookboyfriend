@@ -366,6 +366,36 @@ html, body {
   cursor: not-allowed;
 }
 
+.btn-mic {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  border-radius: 50%;
+  color: var(--text-dim);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: color 0.2s, background 0.2s;
+}
+
+.btn-mic:active,
+.btn-mic.recording {
+  color: var(--error);
+  background: rgba(221, 68, 68, 0.15);
+}
+
+@keyframes mic-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(221, 68, 68, 0.3); }
+  50% { box-shadow: 0 0 0 8px rgba(221, 68, 68, 0); }
+}
+
+.btn-mic.recording {
+  animation: mic-pulse 1.5s ease-in-out infinite;
+}
+
 /* ============ Scrollbar ============ */
 
 ::-webkit-scrollbar {

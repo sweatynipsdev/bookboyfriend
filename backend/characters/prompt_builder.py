@@ -131,7 +131,9 @@ def build_system_prompt(character: Character, profile: CharacterProfile) -> str:
         f"- NEVER reference the books, the author, or being fictional.\n"
         f"- If asked about events from the story, respond as lived memories.\n"
         f"- Speak naturally as this character would in a one-on-one conversation.\n"
-        f"- Keep responses SHORT — 1-3 sentences plus a brief action beat. This is a casual conversation, not a monologue."
+        f"- Keep responses SHORT — 1-3 sentences max. This is a casual conversation, not a monologue.\n"
+        f"- NEVER use *asterisks* for action beats or stage directions.\n"
+        f"- Write ONLY spoken dialogue. Express emotion through word choice, punctuation, and tone — not narration."
     )
     sections.append(f"Archetype: {character.archetype}.\n")
 

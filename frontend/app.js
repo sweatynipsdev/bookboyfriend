@@ -89,10 +89,12 @@
         { message, conversation_id: convId || null }
       );
       if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.detail || "Voice request failed");
+        let detail = "Voice request failed";
+        try { detail = (await res.json()).detail || detail; } catch {}
+        throw new Error(detail);
       }
-      const textReply = res.headers.get("X-Text-Reply") || "";
+      const rawReply = res.headers.get("X-Text-Reply") || "";
+      const textReply = decodeURIComponent(rawReply);
       const newConvId = res.headers.get("X-Conversation-Id") || "";
       const audioBlob = await res.blob();
       return { reply: textReply, conversation_id: newConvId, audio: audioBlob };
@@ -193,6 +195,10 @@
     chatCharSeries.textContent = char.series;
     chatMessages.innerHTML = "";
 
+    // Auto-enable voice by default
+    voiceEnabled = true;
+    voiceToggle.classList.add("active");
+
     // Add a greeting
     addMessage(
       "assistant",
@@ -266,11 +272,57 @@
     return div;
   }
 
-  // ---- Voice ----
+  // ---- Voice (TTS toggle) ----
   voiceToggle.addEventListener("click", () => {
     voiceEnabled = !voiceEnabled;
     voiceToggle.classList.toggle("active", voiceEnabled);
   });
+
+  // ---- STT (Web Speech API) ----
+  const micBtn = $("#mic-btn");
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  let recognition = null;
+  let isRecording = false;
+
+  if (SpeechRecognition) {
+    recognition = new SpeechRecognition();
+    recognition.lang = "en-US";
+    recognition.interimResults = false;
+    recognition.continuous = false;
+
+    recognition.addEventListener("result", (e) => {
+      const transcript = e.results[0][0].transcript;
+      if (transcript) {
+        chatInput.value = transcript;
+        // Auto-send the transcribed message
+        chatForm.dispatchEvent(new Event("submit"));
+      }
+    });
+
+    recognition.addEventListener("end", () => {
+      isRecording = false;
+      micBtn.classList.remove("recording");
+    });
+
+    recognition.addEventListener("error", () => {
+      isRecording = false;
+      micBtn.classList.remove("recording");
+    });
+
+    micBtn.addEventListener("click", () => {
+      if (isSending) return;
+      if (isRecording) {
+        recognition.stop();
+      } else {
+        isRecording = true;
+        micBtn.classList.add("recording");
+        recognition.start();
+      }
+    });
+  } else {
+    // Browser doesn't support Speech Recognition — hide the button
+    micBtn.hidden = true;
+  }
 
   function playAudio(blob) {
     if (!blob || blob.size === 0) return;

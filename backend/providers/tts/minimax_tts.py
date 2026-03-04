@@ -24,10 +24,7 @@ class MiniMaxTTSProvider:
         self._base_url = "https://api.minimax.io/v1"
 
     async def generate(self, text: str) -> bytes:
-        """Generate MP3 audio from text.
-
-        Splits text into sentences for better quality, generates audio
-        for each, and concatenates the MP3 bytes.
+        """Generate MP3 audio from text in a single API call.
 
         Args:
             text: The text to synthesize.
@@ -35,17 +32,9 @@ class MiniMaxTTSProvider:
         Returns:
             MP3 audio bytes.
         """
-        sentences = split_sentences(text)
-        if not sentences:
+        if not text.strip():
             return b""
-
-        audio_parts: list[bytes] = []
-        for sentence in sentences:
-            part = await self.generate_single(sentence)
-            if part:
-                audio_parts.append(part)
-
-        return b"".join(audio_parts)
+        return await self.generate_single(text)
 
     async def generate_single(self, text: str) -> bytes:
         """Generate audio for a single sentence with retry logic."""

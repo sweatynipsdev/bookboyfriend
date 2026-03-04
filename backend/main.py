@@ -87,6 +87,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["X-Text-Reply", "X-Conversation-Id"],
 )
 
 
@@ -440,7 +441,15 @@ async def chat_voice(
     if not tts:
         raise HTTPException(status_code=503, detail="TTS not configured")
 
-    audio = await tts.generate(chat_result.reply)
+    # Strip action beats (*multi-word text*) but keep emphasis (*single word*)
+    import re
+    tts_text = re.sub(r"\*[^*]{4,}\*", "", chat_result.reply).strip()  # only strip 4+ chars
+    tts_text = re.sub(r"\*(\w+)\*", r"\1", tts_text)  # unwrap single-word emphasis
+    tts_text = re.sub(r"\s{2,}", " ", tts_text)  # collapse extra whitespace
+    if not tts_text:
+        tts_text = chat_result.reply  # fallback if everything was action beats
+
+    audio = await tts.generate(tts_text)
     # HTTP headers can't contain newlines — URL-encode the reply text
     from urllib.parse import quote
     safe_reply = quote(chat_result.reply, safe="")
